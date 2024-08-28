@@ -1,7 +1,13 @@
 package domain
 
+import (
+	"github.com/shopspring/decimal"
+	"time"
+)
+
 type Rates struct {
-	Timestamp int64
-	AskPrice  string
-	BidPrice  string
+	ID        int
+	Timestamp time.Time
+	AskPrice  decimal.Decimal
+	BidPrice  decimal.Decimal
 }

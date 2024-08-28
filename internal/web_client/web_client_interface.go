@@ -1,7 +1,10 @@
 package webclient
 
-import "Garantex_grpc/internal/domain"
+import (
+	"Garantex_grpc/internal/domain"
+	"context"
+)
 
 type WebClient interface {
-	GetRatesFromDepth(market string) domain.Rates
+	GetRatesFromDepth(ctx context.Context, market string) (domain.Rates, error)
 }

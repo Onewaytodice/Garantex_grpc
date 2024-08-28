@@ -1,7 +1,10 @@
 package storage
 
-import "Garantex_grpc/internal/domain"
+import (
+	"Garantex_grpc/internal/domain"
+	"context"
+)
 
-type Storage interface {
-	SaveRates(rates domain.Rates) error
+type Storager interface {
+	SaveRates(ctx context.Context, rates domain.Rates) error
 }

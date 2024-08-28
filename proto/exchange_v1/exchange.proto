@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package exchange_v1;
+
+option go_package = "Garantex_grpc/proto/exchange_v1;exchange_v1";
+
+service ExchangeGRPC {
+  rpc GetRates (GetRatesRequest) returns (GetRatesResponse);
+}
+
+enum Market {
+  usdtrub = 0;
+}
+
+message GetRatesRequest {
+  Market market = 1;
+}
+
+message GetRatesResponse {
+  int64 timestamp = 1;
+  double ask = 2;
+  double bid = 3;
+}
