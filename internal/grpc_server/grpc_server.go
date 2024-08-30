@@ -4,8 +4,11 @@ import (
 	"Garantex_grpc/internal/service"
 	pbexchange "Garantex_grpc/proto/exchange_v1"
 	"context"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
+
+var tracer = otel.Tracer("grpc_server")
 
 type Exchange struct {
 	logger   *zap.Logger
@@ -24,6 +27,9 @@ func NewExchange(logger *zap.Logger, exchange service.Exchanger) *Exchange {
 }
 
 func (e *Exchange) GetRates(ctx context.Context, req *pbexchange.GetRatesRequest) (*pbexchange.GetRatesResponse, error) {
+	ctx, span := tracer.Start(ctx, "GetRates")
+	defer span.End()
+
 	rates, err := e.exchange.GetAndSaveRates(ctx, req.GetMarket().String())
 	if err != nil {
 		return &pbexchange.GetRatesResponse{}, err

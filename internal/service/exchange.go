@@ -7,8 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
+
+var tracer = otel.Tracer("exchange-service")
 
 //go:generate mockgen -source=exchange.go -destination=./mocks/mock_exchange_interface.go -package=mocks
 type Exchanger interface {
@@ -32,6 +35,9 @@ func NewExchange(logger *zap.Logger, web webclient.WebClient, storage storage.St
 }
 
 func (e *Exchange) GetAndSaveRates(ctx context.Context, market string) (domain.Rates, error) {
+	ctx, span := tracer.Start(ctx, "GetAndSaveRates")
+	defer span.End()
+
 	rates, err := e.web.GetRatesFromDepth(ctx, market)
 	if err != nil {
 		e.logger.Error("failed to get rates from source", zap.Error(err))

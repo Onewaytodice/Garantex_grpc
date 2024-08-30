@@ -4,11 +4,14 @@ import (
 	"Garantex_grpc/internal/config"
 	"Garantex_grpc/internal/domain"
 	"context"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
 )
+
+var tracer = otel.Tracer("garantex")
 
 type Garantex struct {
 	logger *zap.Logger
@@ -28,6 +31,10 @@ func NewGarantex(logger *zap.Logger, config config.GarantexConfig) *Garantex {
 
 func (g *Garantex) GetRatesFromDepth(ctx context.Context, market string) (domain.Rates, error) {
 	market = strings.ToLower(market)
+
+	ctx, span := tracer.Start(ctx, "GetRatesFromDepth")
+	defer span.End()
+
 	req, err := http.NewRequestWithContext(ctx, "GET", g.url+"/depth?market="+market, nil)
 	if err != nil {
 		g.logger.Debug("garantex new request error", zap.Error(err))

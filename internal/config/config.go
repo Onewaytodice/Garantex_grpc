@@ -1,15 +1,24 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+
 	"os"
 	"time"
+
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
 type Config struct {
@@ -17,16 +26,47 @@ type Config struct {
 	GRPCServer GRPCServerConfig
 	Database   DatabaseConfig
 	Garantex   GarantexConfig
+	Trace      TraceConfig
 }
 
 type LoggerConfig struct {
-	AppName    string `env:"APP_NAME"`
+	Name       string `env:"APP_NAME"`
 	Production bool   `env:"PRODUCTION" env-default:"true"`
 }
 
 type GRPCServerConfig struct {
 	Host string `env:"GRPC_HOST"`
 	Port string `env:"GRPC_PORT"`
+}
+
+type TraceConfig struct {
+	Name string `env:"APP_NAME"`
+	Host string `env:"TRACE_HOST"`
+	Port string `env:"TRACE_PORT"`
+}
+
+func (t *TraceConfig) createEndpoint() string {
+	return fmt.Sprintf("%s:%s", t.Host, t.Port)
+}
+
+func (t *TraceConfig) InitTracerProvider(ctx context.Context) (*trace.TracerProvider, error) {
+	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpoint(t.createEndpoint()), otlptracehttp.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	res, err := resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String(t.Name),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+	provider := trace.NewTracerProvider(trace.WithBatcher(exporter), trace.WithResource(res))
+	otel.SetTracerProvider(provider)
+	return provider, nil
 }
 
 type DatabaseConfig struct {

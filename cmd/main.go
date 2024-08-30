@@ -8,16 +8,19 @@ import (
 	"Garantex_grpc/internal/web_client/garantex"
 	"Garantex_grpc/pkg/logger"
 	pbexchange "Garantex_grpc/proto/exchange_v1"
+	"context"
 	"fmt"
+
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
+
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -31,11 +34,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(conf.Database)
-
-	logger := logger.MustInit(conf.Logger.AppName, conf.Logger.Production)
+	logger := logger.MustInit(conf.Logger.Name, conf.Logger.Production)
 
 	logger.Info("Configuration loaded")
+
+	// Initialize OTLP tracing
+	provider, err := conf.Trace.InitTracerProvider(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		_ = provider.Shutdown(context.Background())
+	}()
 
 	db, err := conf.Database.Connect()
 	if err != nil {
