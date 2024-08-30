@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Garantex_grpc/config"
+	"Garantex_grpc/internal/config"
 	grpcserver "Garantex_grpc/internal/grpc_server"
 	"Garantex_grpc/internal/service"
 	"Garantex_grpc/internal/storage/postgres"
@@ -30,6 +30,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(conf.Database)
 
 	logger := logger.MustInit(conf.Logger.AppName, conf.Logger.Production)
 

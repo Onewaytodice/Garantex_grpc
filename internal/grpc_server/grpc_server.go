@@ -30,6 +30,7 @@ func (e *Exchange) GetRates(ctx context.Context, req *pbexchange.GetRatesRequest
 	}
 	return &pbexchange.GetRatesResponse{
 		Timestamp: rates.Timestamp.Unix(),
+		Market:    req.GetMarket(),
 		Ask:       rates.AskPrice.InexactFloat64(),
 		Bid:       rates.BidPrice.InexactFloat64(),
 	}, nil

@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate mockgen -source=exchange.go -destination=./mocks/mock_exchange_interface.go -package=mocks
 type Exchanger interface {
 	GetAndSaveRates(ctx context.Context, market string) (domain.Rates, error)
 }

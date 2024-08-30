@@ -2,11 +2,13 @@ package config
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"os"
 	"time"
 )
 
@@ -68,6 +70,23 @@ type GarantexConfig struct {
 func New(filenames ...string) (*Config, error) {
 	var err error
 	config := &Config{}
+
+	flag.BoolFunc("name", "", func(s string) error {
+		return os.Setenv("DB_NAME", s)
+	})
+	flag.BoolFunc("user", "", func(s string) error {
+		return os.Setenv("DB_USER", s)
+	})
+	flag.BoolFunc("password", "", func(s string) error {
+		return os.Setenv("DB_PASSWORD", s)
+	})
+	flag.BoolFunc("host", "", func(s string) error {
+		return os.Setenv("DB_HOST", s)
+	})
+	flag.BoolFunc("port", "", func(s string) error {
+		return os.Setenv("DB_PORT", s)
+	})
+	flag.Parse()
 
 	err = godotenv.Load(filenames...)
 	if err != nil {

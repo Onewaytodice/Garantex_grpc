@@ -10,6 +10,8 @@ service ExchangeGRPC {
 
 enum Market {
   usdtrub = 0;
+  usdtusd = 1;
+  usdteur = 2;
 }
 
 message GetRatesRequest {
@@ -18,6 +20,7 @@ message GetRatesRequest {
 
 message GetRatesResponse {
   int64 timestamp = 1;
-  double ask = 2;
-  double bid = 3;
+  Market  market = 2;
+  double ask = 3;
+  double bid = 4;
 }

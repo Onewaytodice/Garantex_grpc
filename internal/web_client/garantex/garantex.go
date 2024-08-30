@@ -1,12 +1,13 @@
 package garantex
 
 import (
-	"Garantex_grpc/config"
+	"Garantex_grpc/internal/config"
 	"Garantex_grpc/internal/domain"
 	"context"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type Garantex struct {
@@ -26,6 +27,7 @@ func NewGarantex(logger *zap.Logger, config config.GarantexConfig) *Garantex {
 }
 
 func (g *Garantex) GetRatesFromDepth(ctx context.Context, market string) (domain.Rates, error) {
+	market = strings.ToLower(market)
 	req, err := http.NewRequestWithContext(ctx, "GET", g.url+"/depth?market="+market, nil)
 	if err != nil {
 		g.logger.Debug("garantex new request error", zap.Error(err))
@@ -47,5 +49,11 @@ func (g *Garantex) GetRatesFromDepth(ctx context.Context, market string) (domain
 		g.logger.Debug("garantex unmarshal body error", zap.Error(err))
 		return domain.Rates{}, err
 	}
-	return depth.ToDomain()
+	rates, err := depth.ToDomain()
+	if err != nil {
+		g.logger.Debug("garantex to domain error", zap.Error(err))
+		return domain.Rates{}, err
+	}
+	rates.Market = market
+	return rates, nil
 }

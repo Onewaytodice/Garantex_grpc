@@ -29,10 +29,6 @@ func UnmarshalGrntxDepth(data []byte) (GrntxDepth, error) {
 	return r, err
 }
 
-func (r *GrntxDepth) Marshal() ([]byte, error) {
-	return json.Marshal(r)
-}
-
 func (d *GrntxDepth) Valid() bool {
 	switch {
 	case d.Timestamp <= 0:

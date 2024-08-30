@@ -20,9 +20,9 @@ func NewStorage(logger *zap.Logger, db *sqlx.DB) *Storage {
 }
 
 func (s *Storage) SaveRates(ctx context.Context, rates domain.Rates) error {
-	q := `INSERT INTO rates (timestamp, ask, bid) VALUES ($1, $2, $3)`
+	q := `INSERT INTO rates (timestamp, market, ask, bid) VALUES ($1, $2, $3, $4)`
 
-	_, err := s.db.ExecContext(ctx, q, rates.Timestamp, rates.AskPrice, rates.BidPrice)
+	_, err := s.db.ExecContext(ctx, q, rates.Timestamp, rates.Market, rates.AskPrice, rates.BidPrice)
 	if err != nil {
 		s.logger.Debug("postgres insert rates error", zap.Error(err))
 		return err
