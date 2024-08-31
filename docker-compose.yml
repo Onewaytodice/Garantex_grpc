@@ -16,7 +16,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_USER=${DB_USER}
     volumes:
-      - /postgresql/data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
     ports:
       - ${DB_PORT}:${DB_PORT}
 
@@ -30,9 +30,12 @@ services:
       - "4317:4317"
       - "4318:4318"
 
-  #prometheus:
-  #  image: prom/prometheus:latest
-  #  volumes:
-  #    - ./prometheus.yaml:/etc/prometheus/prometheus.yml
-  #  ports:
-  #    - "9090:9090"
+  prometheus:
+    container_name: ${APP_NAME}_metrics
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app

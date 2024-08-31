@@ -4,14 +4,33 @@ import (
 	"Garantex_grpc/internal/config"
 	"Garantex_grpc/internal/domain"
 	"context"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
-var tracer = otel.Tracer("garantex")
+var (
+	getRatesFromDepthDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Subsystem: "garantex_web_client",
+		Name:      "get_rates_from_depth_duration_seconds",
+		Help:      "Request to external API duration in seconds",
+		Buckets:   prometheus.DefBuckets,
+	})
+	getRatesFromDepthRequests = promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace:   "",
+		Subsystem:   "garantex_web_client",
+		Name:        "get_rates_from_depth_requests_total",
+		Help:        "Total requests to external API partition by status",
+		ConstLabels: nil,
+	}, []string{"status"})
+
+	tracer = otel.Tracer("garantex")
+)
 
 type Garantex struct {
 	logger *zap.Logger
@@ -30,11 +49,16 @@ func NewGarantex(logger *zap.Logger, config config.GarantexConfig) *Garantex {
 }
 
 func (g *Garantex) GetRatesFromDepth(ctx context.Context, market string) (domain.Rates, error) {
-	market = strings.ToLower(market)
-
+	// Tracing
 	ctx, span := tracer.Start(ctx, "GetRatesFromDepth")
 	defer span.End()
+	// Metrics
+	start := time.Now()
+	defer func() {
+		getRatesFromDepthDuration.Observe(time.Since(start).Seconds())
+	}()
 
+	market = strings.ToLower(market)
 	req, err := http.NewRequestWithContext(ctx, "GET", g.url+"/depth?market="+market, nil)
 	if err != nil {
 		g.logger.Debug("garantex new request error", zap.Error(err))
@@ -46,6 +70,9 @@ func (g *Garantex) GetRatesFromDepth(ctx context.Context, market string) (domain
 		return domain.Rates{}, err
 	}
 	defer resp.Body.Close()
+
+	getRatesFromDepthRequests.WithLabelValues(resp.Status).Inc()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		g.logger.Debug("garantex read body error", zap.Error(err))

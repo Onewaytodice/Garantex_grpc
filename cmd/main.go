@@ -9,11 +9,11 @@ import (
 	"Garantex_grpc/pkg/logger"
 	pbexchange "Garantex_grpc/proto/exchange_v1"
 	"context"
-	"fmt"
-
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 
 	"log"
 	"net"
@@ -35,8 +35,15 @@ func main() {
 	}
 
 	logger := logger.MustInit(conf.Logger.Name, conf.Logger.Production)
-
 	logger.Info("Configuration loaded")
+
+	// Connect to postgreSQL db
+	db, err := conf.Database.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	logger.Info("Database connect successful")
 
 	// Initialize OTLP tracing
 	provider, err := conf.Trace.InitTracerProvider(context.Background())
@@ -46,20 +53,28 @@ func main() {
 	defer func() {
 		_ = provider.Shutdown(context.Background())
 	}()
+	logger.Info("Tracing provider initialized")
 
-	db, err := conf.Database.Connect()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	logger.Info("Database connect successful")
+	// Initialize metrics
+	http.Handle("/metrics", promhttp.Handler())
+	go func() {
+		logger.Info("HTTP metrics server running",
+			zap.String("host", conf.HTTPServer.Host),
+			zap.String("port", conf.HTTPServer.Port))
 
-	err = conf.Database.Migrate("file://./migrations")
+		if err := http.ListenAndServe(config.CreateAddr(conf.HTTPServer.Host, conf.HTTPServer.Port), nil); err != nil {
+			logger.Error("failed to serve metrics http server", zap.Error(err))
+		}
+	}()
+
+	// Up migrations
+	err = conf.Database.UpMigrations("file://./migrations")
 	if err != nil {
 		log.Fatal(err)
 	}
 	logger.Info("Migrations successful")
 
+	// Initializing app components
 	web := garantex.NewGarantex(logger, conf.Garantex)
 
 	storage := postgres.NewStorage(logger, db)
@@ -68,17 +83,18 @@ func main() {
 
 	grpcExchange := grpcserver.NewExchange(logger, exchange)
 
+	// Initialize gRPC server
 	srv := grpc.NewServer()
 	pbexchange.RegisterExchangeGRPCServer(srv, grpcExchange)
 
-	// Register healthcheck gRPC server
+	// Register healthcheck on gRPC server
 	healthcheck := health.NewServer()
 	healthgrpc.RegisterHealthServer(srv, healthcheck)
 
 	// Register reflection service on gRPC server
 	reflection.Register(srv)
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%s", conf.GRPCServer.Port))
+	l, err := net.Listen("tcp", config.CreateAddr(conf.GRPCServer.Host, conf.GRPCServer.Port))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,6 +110,7 @@ func main() {
 		}
 	}()
 
+	// Graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
