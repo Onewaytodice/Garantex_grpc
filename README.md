@@ -20,7 +20,8 @@ gRPC сервис для получения приложение курса USDT
 ## Запуск проекта
 
   1. `git clone https://github.com/Onewaytodice/Garantex_grpc.git`
-  2. `docker compose up -d`
+  2. `cd Garantex_grpc`
+  3. `docker compose up -d`
 
 ## Makefile:
 
