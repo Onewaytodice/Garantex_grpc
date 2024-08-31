@@ -12,22 +12,24 @@ gRPC сервис для получения приложение курса USDT
 
 Конфигурация осуществляется с помощью переменных окружения в файле '.env' в репозитории проекта.
 Есть возможность задать параметры подключения к PostgreSQL через флаги запуска:
+
   `go run ./cmd/main.go -name=<db_name> -port=<db_port> -host=<db_host> -user=<db_username> -password=<db_password>`
+
 В таком случае, параметры конфигурации БД в файле '.env' будут проигнорированы.
 
 ## Запуск проекта
 
-  `git clone https://github.com/Onewaytodice/Garantex_grpc.git`
-  `docker compose up -d`
+  1. `git clone https://github.com/Onewaytodice/Garantex_grpc.git`
+  2. `docker compose up -d`
 
 ## Makefile:
 
-- make build - для сборки приложения;
-- make test - для запуска unit-тестов;
-- make docker-build - для сборки Docker-образа с приложением;
-- make run - для запуска приложения;
-- make lint - для запуска линтера golangci-lint.
+- `make build` - для сборки приложения;
+- `make test` - для запуска unit-тестов;
+- `make docker-build` - для сборки Docker-образа с приложением;
+- `make run` - для запуска приложения;
+- `make lint` - для запуска линтера golangci-lint.
 
 ## Требования:
 
-Go версии 1.23.
+Go version 1.23.0
